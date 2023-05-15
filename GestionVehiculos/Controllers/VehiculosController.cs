@@ -6,157 +6,59 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GestionVehiculos.Models;
+using GestionVehiculos.Repositories;
 
 namespace GestionVehiculos.Controllers
 {
-    public class VehiculosController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class VehiculosController : ControllerBase
     {
-        private readonly VehiclesDbContext _context;
+        private readonly IVehiculoRepository _vehiculoRepository;
 
-        public VehiculosController(VehiclesDbContext context)
+        public VehiculosController(IVehiculoRepository vehiculoRepository)
         {
-            _context = context;
+            _vehiculoRepository = vehiculoRepository;
         }
 
-        // GET: Vehiculos
-        public async Task<IActionResult> Index()
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Vehiculo>> GetVehiculo(int id)
         {
-              return _context.Vehiculos != null ? 
-                          View(await _context.Vehiculos.ToListAsync()) :
-                          Problem("Entity set 'VehiclesDbContext.Vehiculos'  is null.");
-        }
-
-        // GET: Vehiculos/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null || _context.Vehiculos == null)
+            var vehiculo = await _vehiculoRepository.GetVehiculoAsync(id);
+            if (vehiculo is null)
             {
                 return NotFound();
             }
-
-            var vehiculo = await _context.Vehiculos
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (vehiculo == null)
-            {
-                return NotFound();
-            }
-
-            return View(vehiculo);
+            return vehiculo;
         }
 
-        // GET: Vehiculos/Create
-        public IActionResult Create()
+        [HttpGet("getall")]
+        public IEnumerable<Vehiculo> GetVehiculos()
         {
-            return View();
+            return _vehiculoRepository.GetVehiculos();
         }
 
-        // POST: Vehiculos/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Modelo,Placa,Tipo,HistorialAveriosMecanicos,CapacidadVolumen,CapacidadPeso")] Vehiculo vehiculo)
+        [HttpPost("create")]
+        public async Task<ActionResult<Vehiculo>> CreateVehiculo(Vehiculo vehiculo)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(vehiculo);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(vehiculo);
+           
+            await _vehiculoRepository.CreateVehiculoAsync(vehiculo);
+            return CreatedAtAction(nameof(GetVehiculo), new { id = vehiculo.Id }, vehiculo);
         }
 
-        // GET: Vehiculos/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null || _context.Vehiculos == null)
-            {
-                return NotFound();
-            }
 
-            var vehiculo = await _context.Vehiculos.FindAsync(id);
-            if (vehiculo == null)
-            {
-                return NotFound();
-            }
-            return View(vehiculo);
+        [HttpPut("update/{id}")]
+        public async Task<ActionResult<Vehiculo>> UpdateVehiculo(Vehiculo vehiculo)
+        {
+            await _vehiculoRepository.UpdateVehiculoAsync(vehiculo);
+            return CreatedAtAction(nameof(GetVehiculo), new { id = vehiculo.Id }, vehiculo);
         }
 
-        // POST: Vehiculos/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Modelo,Placa,Tipo,HistorialAveriosMecanicos,CapacidadVolumen,CapacidadPeso")] Vehiculo vehiculo)
+        [HttpDelete("delete/{id}")]
+        public async Task<IActionResult> DeleteVehiculo(int id)
         {
-            if (id != vehiculo.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(vehiculo);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!VehiculoExists(vehiculo.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(vehiculo);
-        }
-
-        // GET: Vehiculos/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null || _context.Vehiculos == null)
-            {
-                return NotFound();
-            }
-
-            var vehiculo = await _context.Vehiculos
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (vehiculo == null)
-            {
-                return NotFound();
-            }
-
-            return View(vehiculo);
-        }
-
-        // POST: Vehiculos/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            if (_context.Vehiculos == null)
-            {
-                return Problem("Entity set 'VehiclesDbContext.Vehiculos'  is null.");
-            }
-            var vehiculo = await _context.Vehiculos.FindAsync(id);
-            if (vehiculo != null)
-            {
-                _context.Vehiculos.Remove(vehiculo);
-            }
-            
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool VehiculoExists(int id)
-        {
-          return (_context.Vehiculos?.Any(e => e.Id == id)).GetValueOrDefault();
+            await _vehiculoRepository.DeleteVehiculoAsync(id);
+            return Ok();
         }
     }
 }
